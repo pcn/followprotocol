@@ -1,0 +1,74 @@
+# -*- python -*-
+# hello.sky
+
+pb = proto.package("google.protobuf")
+v2 = proto.package("envoy.api.v2")
+v2_bootstrap = proto.package("envoy.config.bootstrap.v2")
+v2_core = proto.package("envoy.api.v2.core")
+v2_metrics = proto.package("envoy.config.metrics.v2")
+
+
+load("//common_helpers.sky", "to_struct")
+load("//common_helpers.sky", "envoy_address")
+load("//bootstrap.sky", "build_bootstrap_msg")
+load("//bootstrap.sky", "admin_msg")
+load("//bootstrap.sky", "node_msg")
+
+
+def build_static_resources_msg(listeners, clusters):
+    """Puts together a list of listeners, and a list of clusters"""
+    return v2_bootstrap.Bootstrap.StaticResources(
+        listeners=listeners,
+        clusters=clusters)
+
+
+def build_stats_sink_msg(ip, port):
+    """
+    XXX: currently this isn't working, I need to figure out how to deal
+    with the any type (https://developers.google.com/protocol-buffers/docs/proto3#any)
+    in order to be able to create the appropriate sink.
+
+    Create a single stats_sink message of the type DogStatsdSink, which looks 
+    like this:
+
+    stats_sinks:
+    - config:
+        address:
+          socket_address:
+            address: 127.0.0.1
+            port_value: 8126
+            protocol: UDP
+      name: envoy.
+dog_statsd
+    """
+    sink_address = envoy_address(ip, port)
+    sink_address.socket_address.protocol = v2_core.SocketAddress.Protocol.UDP
+    ss = v2_metrics.StatsSink(
+        name="envoy.dog_statsd",
+        config=to_struct(v2_metrics.DogStatsdSink(address=sink_address)))
+    return ss
+
+
+# Look at the init() function in each?
+def main(ctx):
+    # Bootstrap protocol messages
+    breaker_limits = [
+        {
+            "max_pending_requests": 8192,
+            "max_connections": 1024,            
+            "max_requests": 8192,
+            "max_retries": 1000,
+            "priority": "DEFAULT"  # Note: default seems to get elided
+        },
+        {
+            "max_pending_requests": 8192,
+            "max_connections": 1024,
+            "max_requests": 8192,
+            "max_retries": 1000,
+            "priority": "HIGH"
+        }]
+
+    
+    admin = admin_msg("/var/log/envoy/admin_access_log", "127.0.0.1", 1234)
+     
+    return [admin]

@@ -1,0 +1,34 @@
+# -*- python -*-
+pb = proto.package("google.protobuf")
+v2_core = proto.package("envoy.api.v2.core")
+
+# Common helpers
+def envoy_address(ipaddr, port):
+    """Returns a v2_core.Address that consists of a single
+    v2_core.SocketAddress"""
+    return v2_core.Address(
+        socket_address=v2_core.SocketAddress(
+            address=ipaddr,
+            port_value=port))
+
+
+# From https://github.com/stripe/skycfg/issues/29#issuecomment-451211837
+def to_struct(msg):
+    """As of 2019-01-03 there isn't a way to get an Any, which is what I
+    actually wanted, so instead use this to get a protobuf.Struct which
+    will work for my case.
+    """
+    return proto.from_json(pb.Struct, proto.to_json(msg))
+
+
+# From https://github.com/stripe/skycfg/issues/29#issuecomment-453165878
+def to_struct_gogo(msg):
+    """Let's make this a separate function for regular pb messages vs. gogo pb 
+    messages, so I have both options in my toolbox"""
+    return gogo_from_json(pb.Struct, proto.to_json(msg))    
+
+
+def to_uint32_pb(msg):
+    """Let's make this a separate function for regular pb messages vs. gogo pb 
+    messages, so I have both options in my toolbox"""
+    return gogo_from_json(pb.Struct, proto.to_json(msg))    

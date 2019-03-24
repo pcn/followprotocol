@@ -1,0 +1,46 @@
+# -*- python -*-
+v2_bootstrap = proto.package("envoy.config.bootstrap.v2")
+
+load("//common_helpers.sky", "to_struct")
+load("//common_helpers.sky", "envoy_address")
+v2_core = proto.package("envoy.api.v2.core")
+
+# Bootstrap message sections
+def admin_msg(access_log_path, address, port):
+    """This generates the :admin: section, including the access log path
+    and the listen address of this server.
+
+    The admin message is defined at:
+    https://www.envoyproxy.io/docs/envoy/latest/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-msg-config-bootstrap-v2-admin
+    """
+    admin = v2_bootstrap.Admin(
+        access_log_path=access_log_path,
+        address=envoy_address(address, port))
+    return admin
+
+
+def node_msg(cluster, node_id):
+    """The cluster name should match whatever we're using in saltstack to
+    identify the tier, the node_id should match the saltstack minion
+    ID.
+
+    The node type is defined at:
+    https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/core/base.proto#envoy-api-msg-core-node
+    """
+    return v2_core.Node(
+        id=node_id,
+        cluster=cluster)
+
+
+def build_bootstrap_msg(admin, node, static_resources, stats_sinks):
+    """The core initial config is the bootstrap message - this is essentially
+    the jumping-off point that we plant in `/etc/envoy/envoy.yaml`
+
+    See https://www.envoyproxy.io/docs/envoy/latest/api-v2/config/bootstrap/v2/bootstrap.proto#envoy-api-msg-config-bootstrap-v2-bootstrap
+    """
+    return v2_bootstrap.Bootstrap(
+        admin=admin,
+        node=node,
+        static_resources=static_resources,
+        stats_sinks=stats_sinks)
+    
